@@ -1,0 +1,22 @@
+{
+  "name": "pinch-pop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build"
+  },
+  "dependencies": {
+    "@iwsdk/core": "latest",
+    "three": "npm:super-three@0.185.0"
+  },
+  "devDependencies": {
+    "@iwsdk/vite-plugin-dev": "^1.1.0-rc.2",
+    "typescript": "latest",
+    "vite": "latest"
+  },
+  "overrides": {
+    "three": "npm:super-three@0.185.0"
+  }
+}
