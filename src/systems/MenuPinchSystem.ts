@@ -1,7 +1,8 @@
 import { createSystem } from '@iwsdk/core';
 import { Vector3 } from 'three';
 
-const PINCH_THRESHOLD = 0.75;
+const PINCH_START_DISTANCE = 0.028;
+const PINCH_RELEASE_DISTANCE = 0.045;
 
 let menuPinchHandler:
   ((point: Vector3) => void) | null = null;
@@ -34,12 +35,21 @@ export class MenuPinchSystem extends createSystem({}) {
       return;
     }
 
-    let leftPinching = false;
-    let rightPinching = false;
+    let leftPinching = this.leftPinching;
+    let rightPinching = this.rightPinching;
+    let leftHandSeen = false;
+    let rightHandSeen = false;
 
     for (const inputSource of this.world.session.inputSources) {
       if (!inputSource.hand) {
         continue;
+      }
+
+      const isLeft = inputSource.handedness === 'left';
+      if (isLeft) {
+        leftHandSeen = true;
+      } else {
+        rightHandSeen = true;
       }
 
       const thumb = inputSource.hand.get('thumb-tip');
@@ -81,26 +91,19 @@ export class MenuPinchSystem extends createSystem({}) {
         dx * dx + dy * dy + dz * dz
       );
 
-      const pinchStrength = Math.max(
-        0,
-        1 - distance / 0.08
-      );
+      const wasPinching = isLeft
+        ? this.leftPinching
+        : this.rightPinching;
 
-      const isPinching =
-        pinchStrength >= PINCH_THRESHOLD;
-
-      const isLeft =
-        inputSource.handedness === 'left';
+      const isPinching = wasPinching
+        ? distance < PINCH_RELEASE_DISTANCE
+        : distance < PINCH_START_DISTANCE;
 
       if (isLeft) {
         leftPinching = isPinching;
       } else {
         rightPinching = isPinching;
       }
-
-      const wasPinching = isLeft
-        ? this.leftPinching
-        : this.rightPinching;
 
       // Trigger only once when a pinch begins
       if (isPinching && !wasPinching && menuPinchHandler) {
@@ -125,7 +128,7 @@ export class MenuPinchSystem extends createSystem({}) {
       }
     }
 
-    this.leftPinching = leftPinching;
-    this.rightPinching = rightPinching;
+    this.leftPinching = leftHandSeen && leftPinching;
+    this.rightPinching = rightHandSeen && rightPinching;
   }
 }

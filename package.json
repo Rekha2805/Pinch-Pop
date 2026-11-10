@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "set \"PATH=%PATH%;%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\" && vite",
     "build": "tsc && vite build"
   },
   "dependencies": {

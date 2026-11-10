@@ -13,6 +13,8 @@ import {
 } from './systems/MenuPinchSystem';
 
 import {
+  RETURN_HOME_EVENT,
+  START_GAME_EVENT,
   setGameMode,
   type GameMode,
 } from './gameSettings';
@@ -21,6 +23,8 @@ import {
   addPanel,
   addLabel,
   addButton,
+  addMushroomMascot,
+  createResponsiveUIRoot,
 } from './ui/WorldUI';
 
 // ---------------- START APPLICATION ----------------
@@ -43,12 +47,17 @@ async function startApp() {
 
   let selectedMode: GameMode = 'endless';
   let gameStarted = false;
+  let spawnSystemRegistered = false;
+
+  const MENU_PANEL_Z = -2.4;
+  const MENU_LABEL_Z = -2.39;
+  const MENU_BUTTON_Z = -2.38;
+  const MENU_Y_OFFSET = 0.25;
+  const menuRoot = createResponsiveUIRoot(world, MENU_PANEL_Z, 1.25);
 
   const menuCleanups: (() => void)[] = [];
 
   let modeButtonCleanups: (() => void)[] = [];
-
-  let startButtonCleanup: (() => void) | undefined;
 
   // ---------------- MAIN PANEL ----------------
 
@@ -56,12 +65,25 @@ async function startApp() {
     addPanel(
       world,
       0,
-      1.50,
-      -1.5,
-      1.65,
-      2.1
+      1.45 + MENU_Y_OFFSET,
+      MENU_PANEL_Z,
+      1.25,
+      2.0,
+      menuRoot.entity
     )
   );
+
+  const menuMascot = addMushroomMascot(
+    world,
+    0.43,
+    1.78 + MENU_Y_OFFSET,
+    MENU_LABEL_Z,
+    0.22,
+    0.28,
+    menuRoot.entity,
+    'idle'
+  );
+  menuCleanups.push(() => menuMascot.dispose());
 
   // ---------------- TITLE ----------------
 
@@ -69,10 +91,11 @@ async function startApp() {
     addLabel(
       world,
       'PINCH POP',
-      0, 2.15, -1.45,
-      1.15, 0.24,
-      '#FF91B5',
-      62
+      0, 2.15 + MENU_Y_OFFSET, MENU_LABEL_Z,
+      1.05, 0.24,
+      '#F1B08E',
+      62,
+      menuRoot.entity
     )
   );
 
@@ -80,10 +103,11 @@ async function startApp() {
     addLabel(
       world,
       'POP IT. SCORE BIG.',
-      0, 1.92, -1.45,
-      1.05, 0.13,
-      '#E7D4F7',
-      30
+      0, 1.92 + MENU_Y_OFFSET, MENU_LABEL_Z,
+      0.95, 0.13,
+      '#FFE3C2',
+      30,
+      menuRoot.entity
     )
   );
 
@@ -93,10 +117,11 @@ async function startApp() {
     addLabel(
       world,
       'CHOOSE YOUR GAME MODE',
-      0, 1.66, -1.45,
-      1.35, 0.13,
-      '#FFFFFF',
-      29
+      0, 1.66 + MENU_Y_OFFSET, MENU_LABEL_Z,
+      1.1, 0.13,
+      '#FFF1D6',
+      29,
+      menuRoot.entity
     )
   );
 
@@ -116,11 +141,11 @@ async function startApp() {
         selectedMode === 'endless'
           ? 'ENDLESS  ✓'
           : 'ENDLESS',
-        -0.40,
-        1.34,
-        -1.39,
-        0.70,
-        0.29,
+        -0.31,
+        1.34 + MENU_Y_OFFSET,
+        MENU_BUTTON_Z,
+        0.48,
+        0.24,
         () => {
           if (gameStarted) return;
 
@@ -128,8 +153,9 @@ async function startApp() {
           createModeButtons();
         },
         selectedMode === 'endless'
-          ? '#A34BC8'
-          : '#49345F'
+          ? '#E89278'
+          : '#5A3830',
+        menuRoot.entity
       )
     );
 
@@ -140,11 +166,11 @@ async function startApp() {
         selectedMode === 'challenge'
           ? '30 SEC  ✓'
           : '30 SEC',
-        0.40,
-        1.34,
-        -1.39,
-        0.70,
-        0.29,
+        0.31,
+        1.34 + MENU_Y_OFFSET,
+        MENU_BUTTON_Z,
+        0.48,
+        0.24,
         () => {
           if (gameStarted) return;
 
@@ -152,8 +178,9 @@ async function startApp() {
           createModeButtons();
         },
         selectedMode === 'challenge'
-          ? '#A34BC8'
-          : '#49345F'
+          ? '#E89278'
+          : '#5A3830',
+        menuRoot.entity
       )
     );
   }
@@ -166,10 +193,11 @@ async function startApp() {
     addLabel(
       world,
       'HOW TO PLAY',
-      0, 1.02, -1.45,
-      0.85, 0.13,
-      '#FF91B5',
-      31
+      0, 1.12 + MENU_Y_OFFSET, MENU_LABEL_Z,
+      0.75, 0.13,
+      '#F1B08E',
+      31,
+      menuRoot.entity
     )
   );
 
@@ -177,21 +205,23 @@ async function startApp() {
     addLabel(
       world,
       'PINCH YOUR THUMB + INDEX FINGER',
-      0, 0.87, -1.45,
-      1.45, 0.12,
-      '#FFFFFF',
-      24
+      0, 0.97 + MENU_Y_OFFSET, MENU_LABEL_Z,
+      1.1, 0.12,
+      '#FFF1D6',
+      24,
+      menuRoot.entity
     )
   );
 
   menuCleanups.push(
     addLabel(
       world,
-      'TO POP THE GLOWING ORBS',
-      0, 0.74, -1.45,
-      1.25, 0.12,
-      '#DCC9EE',
-      24
+      'PLAY SEATED OR STANDING',
+      0, 0.84 + MENU_Y_OFFSET, MENU_LABEL_Z,
+      1.0, 0.12,
+      '#EBC9A6',
+      24,
+      menuRoot.entity
     )
   );
 
@@ -208,30 +238,32 @@ async function startApp() {
     // Stop menu pinch detection
     setMenuPinchHandler(null);
 
-    // Remove welcome screen
-    menuCleanups.forEach((cleanup) => cleanup());
+    // Keep the menu alive so the results screen can return here without
+    // reloading the XR scene.
+    menuRoot.group.visible = false;
 
-    modeButtonCleanups.forEach((cleanup) => cleanup());
-
-    startButtonCleanup?.();
-
-    // Start gameplay
-    world.registerSystem(SpawnSystem);
+    if (!spawnSystemRegistered) {
+      world.registerSystem(SpawnSystem);
+      spawnSystemRegistered = true;
+    } else {
+      window.dispatchEvent(new Event(START_GAME_EVENT));
+    }
 
     console.log(`Pinch Pop started: ${selectedMode}`);
   }
 
   // Start button
-  startButtonCleanup = addButton(
+  addButton(
     world,
     'START GAME',
     0,
-    0.56,
-    -1.38,
-    1.0,
+    0.66 + MENU_Y_OFFSET,
+    MENU_BUTTON_Z,
+    0.82,
     0.20,
     startGame,
-    '#FF779A'
+    '#E89278',
+    menuRoot.entity
   );
 
   // ---------------- BUTTON HIT TEST ----------------
@@ -245,8 +277,8 @@ async function startApp() {
     height: number
   ) {
     return (
-      Math.abs(point.x - x) <= width / 2 + 0.12 &&
-      Math.abs(point.y - y) <= height / 2 + 0.12 &&
+      Math.abs(point.x - x) <= width / 2 + 0.015 &&
+      Math.abs(point.y - y) <= height / 2 + 0.025 &&
       Math.abs(point.z - z) <= 0.35
     );
   }
@@ -257,14 +289,17 @@ async function startApp() {
 
     if (gameStarted) return;
 
+    menuRoot.group.updateMatrixWorld(true);
+    const localPoint = menuRoot.group.worldToLocal(point.clone());
+
     // Start Game
     if (
       isInsideButton(
-        point,
+        localPoint,
         0,
-        0.56,
-        -1.38,
-        1.0,
+      0.66 + MENU_Y_OFFSET,
+        MENU_BUTTON_Z,
+      0.82,
         0.20
       )
     ) {
@@ -275,11 +310,11 @@ async function startApp() {
     // Endless mode
     if (
       isInsideButton(
-        point,
-        -0.40,
-        1.34,
-        -1.39,
-        0.70,
+        localPoint,
+        -0.31,
+        1.34 + MENU_Y_OFFSET,
+        MENU_BUTTON_Z,
+        0.56,
         0.29
       )
     ) {
@@ -291,11 +326,11 @@ async function startApp() {
     // 30-second challenge
     if (
       isInsideButton(
-        point,
-        0.40,
-        1.34,
-        -1.39,
-        0.70,
+        localPoint,
+        0.31,
+        1.34 + MENU_Y_OFFSET,
+        MENU_BUTTON_Z,
+        0.56,
         0.29
       )
     ) {
@@ -303,6 +338,12 @@ async function startApp() {
       createModeButtons();
     }
   }
+
+  window.addEventListener(RETURN_HOME_EVENT, () => {
+    gameStarted = false;
+    menuRoot.group.visible = true;
+    setMenuPinchHandler(handleMenuPinch);
+  });
 
   // ---------------- REGISTER MENU SYSTEM ----------------
 
