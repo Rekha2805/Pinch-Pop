@@ -11,6 +11,7 @@ import {
   Sprite,
   SpriteMaterial,
   SRGBColorSpace,
+  Vector3,
 } from 'three';
 
 export interface UIParent {
@@ -104,18 +105,32 @@ export function createResponsiveUIRoot(
   world: any,
   z: number,
   contentWidth: number,
-  margin = 0.06
+  margin = 0.06,
+  boostXR = 1,
+  pivotY = 0,
+  boostFlat = boostXR
 ): ResponsiveUIRoot {
   const group = new Group();
   const entity = world.createTransformEntity(group);
+  let lastInXR: boolean | undefined;
   const refresh = () => {
+    lastInXR = !!world.session;
+    const boost = lastInXR ? boostXR : boostFlat;
     const availableWidth = getViewportWorldWidth(world, z, margin);
-    group.scale.x = Math.min(1, availableWidth / contentWidth);
+    const fit = Math.min(1, availableWidth / (contentWidth * boost));
+    // (flat-screen size differs from in-headset size)
+    // Enlarge in x/y only (not depth) around the panel centre.
+    group.scale.set(fit * boost, boost, 1);
+    group.position.y = pivotY * (1 - boost);
     group.updateMatrixWorld(true);
   };
 
   refresh();
   window.addEventListener('resize', refresh);
+  // Re-apply when entering/leaving XR.
+  const xrWatch = window.setInterval(() => {
+    if (lastInXR !== !!world.session) refresh();
+  }, 300);
 
   return {
     group,
@@ -125,6 +140,7 @@ export function createResponsiveUIRoot(
     },
     refresh,
     dispose() {
+      window.clearInterval(xrWatch);
       window.removeEventListener('resize', refresh);
       entity.dispose();
     },
@@ -480,6 +496,42 @@ export function addLabel(
 
 // ---------------- INTERACTIVE BUTTON ----------------
 
+interface PinchButton {
+  mesh: Mesh;
+  width: number;
+  height: number;
+  press: () => void;
+}
+
+const pinchButtons = new Set<PinchButton>();
+
+// Lets a hand pinch (either hand) press a button, not only a controller ray.
+export function pressButtonAtPoint(point: Vector3): boolean {
+  for (const button of pinchButtons) {
+    const { mesh } = button;
+    let visible = true;
+    for (let o: any = mesh; o; o = o.parent) {
+      if (!o.visible) {
+        visible = false;
+        break;
+      }
+    }
+    if (!visible || !mesh.parent) continue;
+
+    mesh.updateWorldMatrix(true, false);
+    const local = mesh.worldToLocal(point.clone());
+    if (
+      Math.abs(local.x) <= button.width / 2 + 0.04 &&
+      Math.abs(local.y) <= button.height / 2 + 0.04 &&
+      Math.abs(local.z) <= 0.25
+    ) {
+      button.press();
+      return true;
+    }
+  }
+  return false;
+}
+
 export function addButton(
   world: any,
   text: string,
@@ -573,6 +625,14 @@ export function addButton(
 
   entity.addComponent(RayInteractable);
 
+  const buttonEntry: PinchButton = {
+    mesh,
+    width: buttonWidth,
+    height: buttonHeight,
+    press: () => handleClick(),
+  };
+  pinchButtons.add(buttonEntry);
+
   const handleClick = () => {
     const soundKind =
       text === 'START GAME'
@@ -598,6 +658,7 @@ export function addButton(
   mesh.addEventListener('pointerout', handlePointerOut);
 
   return () => {
+    pinchButtons.delete(buttonEntry);
     mesh.removeEventListener('pointerdown', handleClick);
     mesh.removeEventListener('pointerover', handlePointerOver);
     mesh.removeEventListener('pointerout', handlePointerOut);

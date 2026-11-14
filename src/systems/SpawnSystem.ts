@@ -32,6 +32,7 @@ import {
   getViewportWorldHeight,
   getViewportWorldWidth,
   trackUITexture,
+  pressButtonAtPoint,
   type ResponsiveUIRoot,
   type MushroomMascot,
 } from '../ui/WorldUI';
@@ -343,7 +344,11 @@ export class SpawnSystem extends createSystem({}) {
     this.hudRoot = createResponsiveUIRoot(
       this.world,
       -2.2,
-      this.compactHUD ? 0.76 : 2.0
+      this.compactHUD ? 0.76 : 2.0,
+      0.06,
+      this.compactHUD ? 1.3 : 1.6,
+      this.compactHUD ? 2.12 : 2.15,
+      this.compactHUD ? 1.0 : 1.1
     );
     this.createScoreDisplay();
     this.createRestartButton();
@@ -397,11 +402,11 @@ export class SpawnSystem extends createSystem({}) {
     this.restartCleanup = addButton(
       this.world,
       'RESET',
-      compact ? -0.18 : 0.49,
+      compact ? -0.2 : 0.49,
       compact ? 1.68 : 2.27,
       -2.15,
-      compact ? 0.23 : 0.25,
-      compact ? 0.14 : 0.16,
+      compact ? 0.34 : 0.32,
+      compact ? 0.22 : 0.32,
       () => this.restartGame(),
       '#B96F58',
       this.hudRoot.entity
@@ -414,11 +419,11 @@ export class SpawnSystem extends createSystem({}) {
     this.endButtonCleanup = addButton(
       this.world,
       'END',
-      compact ? 0.18 : 0.77,
+      compact ? 0.2 : 0.83,
       compact ? 1.68 : 2.27,
       -2.15,
-      compact ? 0.23 : 0.25,
-      compact ? 0.14 : 0.16,
+      compact ? 0.34 : 0.32,
+      compact ? 0.22 : 0.32,
       () => this.showEndConfirmation(),
       '#C96D5B',
       this.hudRoot.entity
@@ -1199,7 +1204,9 @@ export class SpawnSystem extends createSystem({}) {
           ) / 2
         );
 
-        this.tryPopOrb(pinchPoint);
+        if (!pressButtonAtPoint(pinchPoint)) {
+          this.tryPopOrb(pinchPoint);
+        }
       }
     }
 
